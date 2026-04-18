@@ -7,30 +7,94 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="onboarding-modal" class="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div class="onboarding-panel">
+      <h2 id="onboarding-title">Quick setup</h2>
+      <p class="section-note">Answer 4 quick questions for a rough starting estimate.</p>
+
+      <form id="onboarding-form" class="onboarding-form">
+        <label>
+          How many people live in your home?
+          <input id="onboarding-people" type="number" min="1" max="10" value="2" required />
+        </label>
+
+        <label>
+          How long are showers in your home, on average?
+          <select id="onboarding-showers">
+            <option value="quick">Mostly quick (5-6 min)</option>
+            <option value="average" selected>Mixed / average (7-9 min)</option>
+            <option value="long">Usually longer (10+ min)</option>
+          </select>
+        </label>
+
+        <label>
+          Outdoor watering habits?
+          <select id="onboarding-outdoor">
+            <option value="none">Rarely or never</option>
+            <option value="light" selected>Sometimes</option>
+            <option value="frequent">Frequent watering</option>
+          </select>
+        </label>
+
+        <label>
+          Overall water use in your home feels:
+          <select id="onboarding-usage">
+            <option value="low">Pretty low / careful</option>
+            <option value="average" selected>About average</option>
+            <option value="high">Probably high</option>
+          </select>
+        </label>
+      </form>
+
+      <div class="onboarding-actions">
+        <button id="onboarding-apply" type="button" class="primary">Generate my estimate</button>
+        <button id="onboarding-skip" type="button" class="ghost-btn">Skip and enter manually</button>
+      </div>
+    </div>
+  </div>
+
   <header class="hero">
-    <h1>WaterWise Tracker</h1>
+    <div class="hero-top">
+      <h1>WaterWise Tracker</h1>
+      <button id="theme-toggle" type="button" class="theme-toggle">Dark mode</button>
+    </div>
     <p>
       Track your daily water use and get realistic, sustainability-focused
       actions to reduce consumption.
     </p>
   </header>
 
-  <main class="container with-side-panel">
-    <aside class="card impact-panel">
-      <h2>Impact Tracker</h2>
-      <p class="section-note">See your usage level and unlock savings milestones.</p>
+  <section class="cost-snapshot" aria-label="Estimated water costs">
+    <div class="cost-card">
+      <p class="cost-label">Daily cost</p>
+      <p id="cost-daily" class="cost-value">$0.00</p>
+    </div>
+    <div class="cost-card">
+      <p class="cost-label">Weekly cost</p>
+      <p id="cost-weekly" class="cost-value">$0.00</p>
+    </div>
+    <div class="cost-card">
+      <p class="cost-label">Monthly cost</p>
+      <p id="cost-monthly" class="cost-value">$0.00</p>
+    </div>
+  </section>
+
+  <main class="container with-side-panel flow-layout">
+    <aside class="card impact-panel flow-section">
+      <p class="step-label">Step 2</p>
+      <h2>Watch your water flow</h2>
+      <p class="section-note">Your usage bar updates while you edit inputs.</p>
 
       <div class="usage-meter-wrap">
-        <div class="pipe-scale">
-          <span id="meter-min-label">0 gal/day</span>
-          <span id="meter-mid-label">110 gal/day</span>
+        <div class="meter-scale">
           <span id="meter-max-label">220 gal/day</span>
+          <span id="meter-mid-label">110 gal/day</span>
+          <span id="meter-min-label">0 gal/day</span>
         </div>
         <div class="usage-meter">
-          <div class="pipe-end pipe-end-left"></div>
-          <div class="pipe-end pipe-end-right"></div>
           <div id="usage-fill" class="usage-fill">
             <div class="wave wave-back"></div>
+            <div class="wave wave-mid"></div>
             <div class="wave wave-front"></div>
           </div>
           <div class="meter-marker marker-best">Best practice</div>
@@ -40,59 +104,122 @@
       </div>
 
       <div id="impact-metrics" class="impact-metrics"></div>
+      <div class="detail-toggle">
+        <label for="show-details">
+          <input id="show-details" type="checkbox" />
+          Show detailed statistics
+        </label>
+      </div>
+      <div id="detailed-stats" class="detailed-stats"></div>
       <div id="milestones" class="milestones"></div>
     </aside>
 
     <div class="main-content">
-      <section class="card">
-        <h2>Daily Usage Inputs</h2>
+      <section class="card flow-section">
+        <p class="step-label">Step 1</p>
+        <h2>Quick input</h2>
         <p class="section-note">
           Enter your household behavior for a typical day.
         </p>
+        <div class="quick-actions">
+          <button id="reopen-onboarding" type="button" class="chip-btn">Quick setup</button>
+          <button type="button" class="chip-btn" data-preset="apartment">Apartment baseline</button>
+          <button type="button" class="chip-btn" data-preset="family">Family baseline</button>
+          <button type="button" class="chip-btn" data-preset="efficient">Efficient home</button>
+          <button type="button" class="chip-btn" data-preset="reset">Reset</button>
+        </div>
         <form id="usage-form" class="grid">
           <label>
             Household size
-            <input id="people" type="number" min="1" value="2" required />
+            <div class="input-with-stepper">
+              <button type="button" class="step-btn" data-target="people" data-dir="-1">-</button>
+              <input id="people" type="number" min="1" value="2" required />
+              <button type="button" class="step-btn" data-target="people" data-dir="1">+</button>
+            </div>
           </label>
           <label>
             Avg shower length (minutes/person)
-            <input id="shower-minutes" type="number" min="0" step="0.5" value="8" required />
+            <div class="input-with-stepper">
+              <button type="button" class="step-btn" data-target="shower-minutes" data-dir="-1">-</button>
+              <input id="shower-minutes" type="number" min="0" step="0.5" value="8" required />
+              <button type="button" class="step-btn" data-target="shower-minutes" data-dir="1">+</button>
+            </div>
           </label>
           <label>
             Toilet flushes (per household/day)
-            <input id="flushes" type="number" min="0" value="18" required />
+            <div class="input-with-stepper">
+              <button type="button" class="step-btn" data-target="flushes" data-dir="-1">-</button>
+              <input id="flushes" type="number" min="0" value="18" required />
+              <button type="button" class="step-btn" data-target="flushes" data-dir="1">+</button>
+            </div>
           </label>
           <label>
             Laundry loads (per week)
-            <input id="laundry-loads" type="number" min="0" step="1" value="5" required />
-          </label>
-          <label>
-            Dishwasher loads (per week)
-            <input id="dishwasher-loads" type="number" min="0" step="1" value="4" required />
-          </label>
-          <label>
-            Outdoor watering (minutes/day)
-            <input id="outdoor-minutes" type="number" min="0" step="1" value="10" required />
-          </label>
-          <label>
-            Faucet left running (minutes/day)
-            <input id="faucet-minutes" type="number" min="0" step="1" value="6" required />
+            <div class="input-with-stepper">
+              <button type="button" class="step-btn" data-target="laundry-loads" data-dir="-1">-</button>
+              <input id="laundry-loads" type="number" min="0" step="1" value="5" required />
+              <button type="button" class="step-btn" data-target="laundry-loads" data-dir="1">+</button>
+            </div>
           </label>
         </form>
-        <button id="analyze-btn" class="primary">Analyze Water Use</button>
-      </section>
 
-      <section class="card">
-        <h2>Usage Summary</h2>
-        <div id="summary" class="summary">
-          <p>Press <strong>Analyze Water Use</strong> to view your estimate.</p>
+        <div class="optional-controls">
+          <p class="section-note">Add optional fields only if they apply to your home:</p>
+          <button type="button" class="chip-btn add-field-btn" data-field="dishwasher">+ Dishwasher use</button>
+          <button type="button" class="chip-btn add-field-btn" data-field="outdoor">+ Outdoor watering</button>
+          <button type="button" class="chip-btn add-field-btn" data-field="faucet">+ Faucet running time</button>
+        </div>
+
+        <div id="optional-fields" class="optional-fields">
+          <div class="optional-field is-hidden" data-field="dishwasher">
+            <label>
+              Dishwasher loads (per week)
+              <div class="input-with-stepper">
+                <button type="button" class="step-btn" data-target="dishwasher-loads" data-dir="-1">-</button>
+                <input id="dishwasher-loads" type="number" min="0" step="1" value="0" required />
+                <button type="button" class="step-btn" data-target="dishwasher-loads" data-dir="1">+</button>
+              </div>
+            </label>
+            <button type="button" class="remove-field-btn" data-field="dishwasher">Remove</button>
+          </div>
+
+          <div class="optional-field is-hidden" data-field="outdoor">
+            <label>
+              Outdoor watering (minutes/day)
+              <div class="input-with-stepper">
+                <button type="button" class="step-btn" data-target="outdoor-minutes" data-dir="-1">-</button>
+                <input id="outdoor-minutes" type="number" min="0" step="1" value="0" required />
+                <button type="button" class="step-btn" data-target="outdoor-minutes" data-dir="1">+</button>
+              </div>
+            </label>
+            <button type="button" class="remove-field-btn" data-field="outdoor">Remove</button>
+          </div>
+
+          <div class="optional-field is-hidden" data-field="faucet">
+            <label>
+              Faucet left running (minutes/day)
+              <div class="input-with-stepper">
+                <button type="button" class="step-btn" data-target="faucet-minutes" data-dir="-1">-</button>
+                <input id="faucet-minutes" type="number" min="0" step="1" value="0" required />
+                <button type="button" class="step-btn" data-target="faucet-minutes" data-dir="1">+</button>
+              </div>
+            </label>
+            <button type="button" class="remove-field-btn" data-field="faucet">Remove</button>
+          </div>
         </div>
       </section>
 
-      <section class="card">
-        <h2>Recommended Actions</h2>
+      <section class="card flow-section">
+        <p class="step-label">Step 3</p>
+        <h2>Quick insights</h2>
+        <div id="summary" class="summary"></div>
+      </section>
+
+      <section class="card flow-section">
+        <p class="step-label">Step 4</p>
+        <h2>Save water and money</h2>
         <p class="section-note">
-          Ranked by estimated water savings and practical feasibility.
+          Start with the first two actions for the fastest impact.
         </p>
         <div id="recommendations" class="recommendations">
           <p>Your personalized recommendations will appear here.</p>
