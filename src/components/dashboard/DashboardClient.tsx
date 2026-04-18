@@ -87,9 +87,11 @@ export function DashboardClient({
   const [quickStatus, setQuickStatus] = useState("");
   const [alertNotice, setAlertNotice] = useState<{ count: number; labels: string[] } | null>(null);
   const alertsSectionRef = useRef<HTMLElement | null>(null);
+  const mainBarRef = useRef<HTMLDivElement | null>(null);
   const initializedAlertTrackingRef = useRef(false);
   const previousTopLogIdRef = useRef<string | undefined>(undefined);
   const previousAlertKeySetRef = useRef<Set<string>>(new Set());
+  const [showFloatingBar, setShowFloatingBar] = useState(false);
   const baselineHouseholdSize = 2.6;
   const householdScale = Math.max(householdSize, 1) / baselineHouseholdSize;
   const adjustedBenchmarkLiters = 1135 * householdScale;
@@ -169,6 +171,7 @@ export function DashboardClient({
     () => usageSuggestions.map((item) => `${item.appliance}:${item.severity}`),
     [usageSuggestions],
   );
+  const barFillPercent = Math.min(100, Math.round((summary.estimatedDailyLiters / adjustedBenchmarkLiters) * 100));
 
   function adjustQuickQuantity(direction: -1 | 1) {
     setQuickQuantity((current) => Math.max(1, current + direction * quickQuantityStep));
@@ -226,6 +229,20 @@ export function DashboardClient({
     previousAlertKeySetRef.current = currentAlertKeySet;
   }, [logs, suggestionKeys, usageSuggestions]);
 
+  useEffect(() => {
+    const target = mainBarRef.current;
+    if (!target || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const hasScrolled = window.scrollY > 120;
+        setShowFloatingBar(!entry.isIntersecting && hasScrolled);
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
   async function submitQuickEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (quickQuantity <= 0 || (isHouseholdApplicable && householdSize <= 0)) {
@@ -268,6 +285,27 @@ export function DashboardClient({
             : `${alertNotice.count} new usage alerts`}
         </button>
       ) : null}
+      {showFloatingBar ? (
+        <button
+          type="button"
+          className="ww-floating-bar"
+          onClick={() => mainBarRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          style={{ top: alertNotice ? "4.9rem" : "1rem" }}
+        >
+          <p className="ww-floating-bar-label">Watch your water flow</p>
+          <div className="ww-floating-bar-track">
+            <div className="ww-floating-zone ww-floating-zone-saving" />
+            <div className="ww-floating-zone ww-floating-zone-average" />
+            <div className="ww-floating-zone ww-floating-zone-high" />
+            <div className="ww-floating-checkpoint" style={{ left: `${COST_SAVINGS_RATIO * 100}%` }} />
+            <div className="ww-floating-checkpoint" style={{ left: `${COST_HIGH_RATIO * 100}%` }} />
+            <div className="ww-floating-bar-fill" style={{ width: `${barFillPercent}%` }} />
+          </div>
+          <p className="ww-floating-bar-meta">
+            ~${dailyCost.toFixed(2)}/day - {barFillPercent}% of baseline
+          </p>
+        </button>
+      ) : null}
       <section className="ww-cost-snapshot" aria-label="Estimated water costs">
         <article className="ww-cost-card">
           <p className="ww-cost-label">Daily cost</p>
@@ -290,16 +328,18 @@ export function DashboardClient({
         <aside className="ww-card ww-flow-section ww-impact-panel ww-step-primary">
           <p className="ww-start-hint">Start here</p>
           <h2>Watch your water flow</h2>
-          <WaterPipeFill
-            liters={summary.estimatedDailyLiters}
-            dailyCostUsd={dailyCost}
-            pricePerLiter={pricePerLiter}
-            savingsBoundaryRatio={COST_SAVINGS_RATIO}
-            highBoundaryRatio={COST_HIGH_RATIO}
-            subtitle="The pipe reflects your estimated daily usage based on current logs."
-            benchmarkLabel={`typical daily baseline for ${householdSize} people`}
-            benchmarkLiters={adjustedBenchmarkLiters}
-          />
+          <div ref={mainBarRef}>
+            <WaterPipeFill
+              liters={summary.estimatedDailyLiters}
+              dailyCostUsd={dailyCost}
+              pricePerLiter={pricePerLiter}
+              savingsBoundaryRatio={COST_SAVINGS_RATIO}
+              highBoundaryRatio={COST_HIGH_RATIO}
+              subtitle="The pipe reflects your estimated daily usage based on current logs."
+              benchmarkLabel={`typical daily baseline for ${householdSize} people`}
+              benchmarkLiters={adjustedBenchmarkLiters}
+            />
+          </div>
           <div className="grid" style={{ marginTop: "0.75rem" }}>
             <p className="muted">
               <strong>Top source:</strong> {summary.topAppliance}

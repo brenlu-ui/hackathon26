@@ -16,28 +16,34 @@ type LogEntry = {
 
 export function DashboardWorkspace({ initialLogs }: { initialLogs: LogEntry[] }) {
   const [logs, setLogs] = useState(initialLogs);
-  const [householdSize, setHouseholdSize] = useState(() => {
-    if (typeof window === "undefined") return 1;
-    const storedSize = window.localStorage.getItem("waterwise-household-size");
-    const parsed = Number(storedSize);
-    return storedSize && Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 1;
-  });
-  const [showHouseholdPrompt, setShowHouseholdPrompt] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const storedSize = window.localStorage.getItem("waterwise-household-size");
-    const parsed = Number(storedSize);
-    return !(storedSize && Number.isFinite(parsed) && parsed > 0);
-  });
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const storedTheme = window.localStorage.getItem("waterwise-theme");
-    const preferredDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return storedTheme ? storedTheme === "dark" : preferredDark;
-  });
+  const [householdSize, setHouseholdSize] = useState(1);
+  const [showHouseholdPrompt, setShowHouseholdPrompt] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [preferencesReady, setPreferencesReady] = useState(false);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const storedSize = window.localStorage.getItem("waterwise-household-size");
+      const parsedSize = Number(storedSize);
+      if (storedSize && Number.isFinite(parsedSize) && parsedSize > 0) {
+        setHouseholdSize(Math.round(parsedSize));
+        setShowHouseholdPrompt(false);
+      } else {
+        setShowHouseholdPrompt(true);
+      }
+
+      const storedTheme = window.localStorage.getItem("waterwise-theme");
+      const preferredDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setDarkMode(storedTheme ? storedTheme === "dark" : preferredDark);
+      setPreferencesReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesReady) return;
     document.body.classList.toggle("dark-mode", darkMode);
-  }, [darkMode]);
+  }, [darkMode, preferencesReady]);
 
   function toggleTheme() {
     const nextDarkMode = !darkMode;
