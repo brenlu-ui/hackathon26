@@ -92,14 +92,14 @@ export function DashboardWorkspace({ initialLogs }: { initialLogs: LogEntry[] })
         <div className="ww-hero-top">
           <h1>WaterWise Tracker</h1>
           <button type="button" className="ww-theme-toggle" onClick={toggleTheme}>
-            <span suppressHydrationWarning>{darkMode ? "Light mode" : "Dark mode"}</span>
+            <span>Switch theme</span>
           </button>
         </div>
         <p>Track your household usage, understand cost impact, and spot practical savings quickly.</p>
       </header>
       <DashboardClient
         logs={logs}
-        onLogCreated={(log) => setLogs((current) => [log, ...current].slice(0, 10))}
+        onLogCreated={(log) => setLogs((current) => [log, ...current])}
         householdSize={householdSize}
         onHouseholdSizeChange={updateHouseholdSize}
       >

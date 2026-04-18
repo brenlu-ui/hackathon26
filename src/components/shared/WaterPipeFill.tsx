@@ -6,6 +6,8 @@ type WaterPipeFillProps = {
   liters: number;
   dailyCostUsd?: number;
   pricePerLiter?: number;
+  savingsBoundaryRatio?: number;
+  highBoundaryRatio?: number;
   benchmarkLiters?: number;
   benchmarkLabel?: string;
   subtitle?: string;
@@ -15,6 +17,8 @@ export function WaterPipeFill({
   liters,
   dailyCostUsd,
   pricePerLiter = 0.0015,
+  savingsBoundaryRatio = 0.6,
+  highBoundaryRatio = 0.9,
   benchmarkLiters = 1135,
   benchmarkLabel = "U.S. household daily average",
   subtitle = "Each log fills the pipe by predicted liters (quantity x liters per unit).",
@@ -34,11 +38,12 @@ export function WaterPipeFill({
   }, [fillPercent]);
 
   const currentLeft = Math.min(Math.max(fillPercent, 10), 90);
-  const savingsBoundaryRatio = 0.6;
-  const highBoundaryRatio = 0.9;
   const baselineDailyCost = benchmarkLiters * pricePerLiter;
   const savingsCostMax = baselineDailyCost * savingsBoundaryRatio;
   const highCostStart = baselineDailyCost * highBoundaryRatio;
+  const savingsReached = fillPercent >= 1;
+  const averageReached = fillPercent >= savingsBoundaryRatio * 100;
+  const highReached = fillPercent >= highBoundaryRatio * 100;
 
   return (
     <div className="pipe-wrap">
@@ -49,9 +54,9 @@ export function WaterPipeFill({
           <span>Max baseline: {benchmarkLiters.toLocaleString()} L/day</span>
         </div>
         <div className="pipe-meter">
-          <div className="pipe-zone zone-savings" />
-          <div className="pipe-zone zone-average" />
-          <div className="pipe-zone zone-high" />
+          <div className={`pipe-zone zone-savings ${savingsReached ? "zone-lit" : ""}`} />
+          <div className={`pipe-zone zone-average ${averageReached ? "zone-lit" : ""}`} />
+          <div className={`pipe-zone zone-high ${highReached ? "zone-lit" : ""}`} />
           <div className="pipe-checkpoint" style={{ left: `${savingsBoundaryRatio * 100}%` }} />
           <div className="pipe-checkpoint" style={{ left: `${highBoundaryRatio * 100}%` }} />
           <div
@@ -112,14 +117,14 @@ export function WaterPipeFill({
           position: relative;
           height: 110px;
           border-radius: 10px;
-          border: 2px solid #4f6f86;
-          background: linear-gradient(180deg, #173548 0%, #112b3b 100%);
+          border: 2px solid var(--pipe-meter-border);
+          background: linear-gradient(180deg, var(--pipe-meter-bg-top) 0%, var(--pipe-meter-bg-bottom) 100%);
           overflow: hidden;
           box-shadow:
             inset 0 0 0 1px rgba(156, 206, 235, 0.18),
             inset 0 -12px 18px rgba(8, 24, 35, 0.5),
             0 10px 24px rgba(7, 27, 40, 0.35),
-            0 0 20px rgba(52, 155, 222, 0.24);
+            0 0 20px var(--pipe-meter-glow);
         }
 
         .pipe-zone {
@@ -128,24 +133,46 @@ export function WaterPipeFill({
           bottom: 0;
           z-index: 1;
           pointer-events: none;
+          transition: filter 280ms ease, opacity 280ms ease, box-shadow 280ms ease;
         }
 
         .zone-savings {
           left: 0;
           width: ${savingsBoundaryRatio * 100}%;
           background: linear-gradient(180deg, rgba(58, 167, 99, 0.14) 0%, rgba(58, 167, 99, 0.08) 100%);
+          opacity: 0.45;
         }
 
         .zone-average {
           left: ${savingsBoundaryRatio * 100}%;
           width: ${(highBoundaryRatio - savingsBoundaryRatio) * 100}%;
           background: linear-gradient(180deg, rgba(224, 161, 0, 0.17) 0%, rgba(224, 161, 0, 0.09) 100%);
+          opacity: 0.4;
         }
 
         .zone-high {
           left: ${highBoundaryRatio * 100}%;
           width: ${(1 - highBoundaryRatio) * 100}%;
           background: linear-gradient(180deg, rgba(194, 55, 58, 0.2) 0%, rgba(194, 55, 58, 0.12) 100%);
+          opacity: 0.38;
+        }
+
+        .pipe-zone.zone-lit {
+          opacity: 0.95;
+          filter: saturate(1.2) brightness(1.12);
+          animation: zonePulse 1.6s ease-in-out infinite;
+        }
+
+        .zone-savings.zone-lit {
+          box-shadow: inset 0 0 18px rgba(73, 208, 126, 0.28);
+        }
+
+        .zone-average.zone-lit {
+          box-shadow: inset 0 0 18px rgba(234, 179, 23, 0.28);
+        }
+
+        .zone-high.zone-lit {
+          box-shadow: inset 0 0 20px rgba(220, 66, 69, 0.32);
         }
 
         .pipe-checkpoint {
@@ -166,11 +193,11 @@ export function WaterPipeFill({
           top: 0;
           bottom: 0;
           z-index: 2;
-          background: linear-gradient(180deg, #4ab7eb 0%, #227fb8 60%, #145b8e 100%);
+          background: linear-gradient(180deg, var(--pipe-fill-top) 0%, var(--pipe-fill-mid) 60%, var(--pipe-fill-bottom) 100%);
           box-shadow:
-            inset 0 8px 16px rgba(98, 190, 235, 0.2),
+            inset 0 8px 16px var(--pipe-fill-highlight),
             inset 0 -12px 16px rgba(9, 58, 93, 0.36),
-            0 0 12px rgba(51, 147, 210, 0.26);
+            0 0 12px var(--pipe-fill-glow);
           transition: width 500ms ease;
           overflow: hidden;
         }
@@ -242,12 +269,12 @@ export function WaterPipeFill({
           position: absolute;
           top: 6px;
           padding: 0.2rem 0.45rem;
-          border: 1px solid rgba(158, 215, 245, 0.35);
+          border: 1px solid var(--pipe-marker-border);
           border-radius: 4px;
           font-size: 0.7rem;
           line-height: 1.2;
-          color: #d4efff;
-          background: rgba(12, 42, 61, 0.86);
+          color: var(--pipe-marker-text);
+          background: var(--pipe-marker-bg);
           z-index: 4;
           transform: translateX(-50%);
           white-space: nowrap;
@@ -262,8 +289,8 @@ export function WaterPipeFill({
 
         .marker-current {
           top: 70px;
-          color: #bfe8ff;
-          border: 2px solid #58b6ec;
+          color: var(--pipe-current-text);
+          border: 2px solid var(--pipe-current-border);
           font-weight: 700;
         }
 
@@ -271,7 +298,7 @@ export function WaterPipeFill({
           text-align: center;
           margin-top: 0.8rem;
           font-weight: 800;
-          color: #1d78ac;
+          color: var(--pipe-value-text);
           font-size: 1.05rem;
         }
 
@@ -384,6 +411,16 @@ export function WaterPipeFill({
           }
           100% {
             opacity: 0;
+          }
+        }
+
+        @keyframes zonePulse {
+          0%,
+          100% {
+            filter: saturate(1.15) brightness(1.06);
+          }
+          50% {
+            filter: saturate(1.28) brightness(1.18);
           }
         }
       `}</style>

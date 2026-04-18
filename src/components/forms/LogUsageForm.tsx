@@ -96,7 +96,7 @@ export function LogUsageForm({
     }
 
     const { log } = (await response.json()) as { log: LogEntry };
-    updateLogs((current) => [log, ...current].slice(0, 10));
+    updateLogs((current) => [log, ...current]);
     setNotes("");
     setStatus("Saved.");
     setIsSaving(false);

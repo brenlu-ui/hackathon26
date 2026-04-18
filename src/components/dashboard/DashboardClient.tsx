@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { WaterPipeFill } from "@/components/shared/WaterPipeFill";
 import { APPLIANCES, type ApplianceId } from "@/lib/appliances";
 
@@ -14,18 +14,15 @@ type LogEntry = {
   notes?: string | null;
 };
 
-function getCostTone(cost: number, averageCost: number) {
-  if (averageCost <= 0) {
-    return { tone: "is-near", label: "Average unavailable" };
-  }
-  const differenceRatio = (cost - averageCost) / averageCost;
-  if (Math.abs(differenceRatio) < 0.03) {
-    return { tone: "is-near", label: "Near average" };
-  }
-  if (differenceRatio > 0) {
-    return { tone: "is-above", label: "Above average" };
-  }
-  return { tone: "is-below", label: "Below average" };
+const COST_SAVINGS_RATIO = 0.6;
+const COST_HIGH_RATIO = 0.9;
+
+function getCostTone(cost: number, baselineCost: number) {
+  if (baselineCost <= 0) return { tone: "is-near", label: "Average unavailable" };
+  const ratio = cost / baselineCost;
+  if (ratio < COST_SAVINGS_RATIO) return { tone: "is-below", label: "Cost-saving range" };
+  if (ratio >= COST_HIGH_RATIO) return { tone: "is-above", label: "High-cost range" };
+  return { tone: "is-near", label: "Average range" };
 }
 
 const APPLIANCE_SUGGESTIONS: Record<
@@ -88,6 +85,11 @@ export function DashboardClient({
   const [quickQuantity, setQuickQuantity] = useState(1);
   const [quickSaving, setQuickSaving] = useState(false);
   const [quickStatus, setQuickStatus] = useState("");
+  const [alertNotice, setAlertNotice] = useState<{ count: number; labels: string[] } | null>(null);
+  const alertsSectionRef = useRef<HTMLElement | null>(null);
+  const initializedAlertTrackingRef = useRef(false);
+  const previousTopLogIdRef = useRef<string | undefined>(undefined);
+  const previousAlertKeySetRef = useRef<Set<string>>(new Set());
   const baselineHouseholdSize = 2.6;
   const householdScale = Math.max(householdSize, 1) / baselineHouseholdSize;
   const adjustedBenchmarkLiters = 1135 * householdScale;
@@ -163,6 +165,10 @@ export function DashboardClient({
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
       .sort((a, b) => b.dailyLiters - a.dailyLiters);
   }, [householdScale, summary.activeDays, summary.applianceTotals]);
+  const suggestionKeys = useMemo(
+    () => usageSuggestions.map((item) => `${item.appliance}:${item.severity}`),
+    [usageSuggestions],
+  );
 
   function adjustQuickQuantity(direction: -1 | 1) {
     setQuickQuantity((current) => Math.max(1, current + direction * quickQuantityStep));
@@ -177,6 +183,48 @@ export function DashboardClient({
     const next = Math.max(0, Number((pricePerLiter + direction * step).toFixed(4)));
     setPricePerLiter(next);
   }
+
+  function jumpToAlertsSection() {
+    alertsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setAlertNotice(null);
+  }
+
+  useEffect(() => {
+    const currentTopLogId = logs[0]?.id;
+    const currentAlertKeySet = new Set(suggestionKeys);
+
+    if (!initializedAlertTrackingRef.current) {
+      initializedAlertTrackingRef.current = true;
+      previousTopLogIdRef.current = currentTopLogId;
+      previousAlertKeySetRef.current = currentAlertKeySet;
+      return;
+    }
+
+    const previousTopLogId = previousTopLogIdRef.current;
+    const entryWasAdded =
+      Boolean(previousTopLogId) &&
+      Boolean(currentTopLogId) &&
+      currentTopLogId !== previousTopLogId &&
+      logs.some((log) => log.id === previousTopLogId);
+
+    if (entryWasAdded) {
+      const previousAlertKeys = previousAlertKeySetRef.current;
+      const newAlertIndexes = suggestionKeys
+        .map((key, index) => ({ key, index }))
+        .filter((item) => !previousAlertKeys.has(item.key))
+        .map((item) => item.index);
+
+      if (newAlertIndexes.length > 0) {
+        const labels = newAlertIndexes
+          .map((index) => usageSuggestions[index]?.appliance)
+          .filter((label): label is string => Boolean(label));
+        setAlertNotice({ count: newAlertIndexes.length, labels });
+      }
+    }
+
+    previousTopLogIdRef.current = currentTopLogId;
+    previousAlertKeySetRef.current = currentAlertKeySet;
+  }, [logs, suggestionKeys, usageSuggestions]);
 
   async function submitQuickEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,6 +261,13 @@ export function DashboardClient({
 
   return (
     <div className="grid">
+      {alertNotice ? (
+        <button type="button" className="ww-alert-toast" onClick={jumpToAlertsSection}>
+          {alertNotice.count === 1
+            ? `New usage alert: ${alertNotice.labels[0] ?? "source"}`
+            : `${alertNotice.count} new usage alerts`}
+        </button>
+      ) : null}
       <section className="ww-cost-snapshot" aria-label="Estimated water costs">
         <article className="ww-cost-card">
           <p className="ww-cost-label">Daily cost</p>
@@ -239,6 +294,8 @@ export function DashboardClient({
             liters={summary.estimatedDailyLiters}
             dailyCostUsd={dailyCost}
             pricePerLiter={pricePerLiter}
+            savingsBoundaryRatio={COST_SAVINGS_RATIO}
+            highBoundaryRatio={COST_HIGH_RATIO}
             subtitle="The pipe reflects your estimated daily usage based on current logs."
             benchmarkLabel={`typical daily baseline for ${householdSize} people`}
             benchmarkLiters={adjustedBenchmarkLiters}
@@ -251,52 +308,6 @@ export function DashboardClient({
               <strong>Data window:</strong> {summary.activeDays} day(s) of usage logs
             </p>
           </div>
-
-          <h2 className="ww-section-title">Quick entry</h2>
-          <form className="ww-quick-entry" onSubmit={submitQuickEntry}>
-            <label>
-              Appliance
-              <select
-                value={quickAppliance}
-                onChange={(event) => setQuickAppliance(event.target.value as ApplianceId)}
-              >
-                {APPLIANCES.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {quickQuantityLabel}
-              <div className="ww-quick-stepper">
-                <button type="button" className="button button-secondary" onClick={() => adjustQuickQuantity(-1)}>
-                  -
-                </button>
-                <input
-                  type="number"
-                  min={1}
-                  step={quickQuantityStep}
-                  value={quickQuantity}
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    setQuickQuantity(Number.isFinite(next) ? Math.max(1, next) : 1);
-                  }}
-                />
-                <button type="button" className="button button-secondary" onClick={() => adjustQuickQuantity(1)}>
-                  +
-                </button>
-              </div>
-            </label>
-            <p className="muted">
-              Estimated addition: <strong>{quickEstimateLiters.toFixed(2)} L</strong>
-              {isHouseholdApplicable ? ` (${quickQuantity} x ${householdSize} people)` : ""}
-            </p>
-            <button type="submit" className="button button-primary" disabled={quickSaving}>
-              {quickSaving ? "Saving..." : "Add quick entry"}
-            </button>
-            <p className="muted">{quickStatus}</p>
-          </form>
 
           <section>
             <h3>Appliance usage totals</h3>
@@ -347,6 +358,54 @@ export function DashboardClient({
 
         <div className="ww-main-content">
           <section className="ww-card ww-flow-section">
+            <h3>Quick entry</h3>
+            <form className="ww-quick-entry" onSubmit={submitQuickEntry} style={{ marginTop: "0.55rem" }}>
+              <label>
+                Appliance
+                <select
+                  value={quickAppliance}
+                  onChange={(event) => setQuickAppliance(event.target.value as ApplianceId)}
+                >
+                  {APPLIANCES.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {quickQuantityLabel}
+                <div className="ww-quick-stepper">
+                  <button type="button" className="button button-secondary" onClick={() => adjustQuickQuantity(-1)}>
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    step={quickQuantityStep}
+                    value={quickQuantity}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setQuickQuantity(Number.isFinite(next) ? Math.max(1, next) : 1);
+                    }}
+                  />
+                  <button type="button" className="button button-secondary" onClick={() => adjustQuickQuantity(1)}>
+                    +
+                  </button>
+                </div>
+              </label>
+              <p className="muted">
+                Estimated addition: <strong>{quickEstimateLiters.toFixed(2)} L</strong>
+                {isHouseholdApplicable ? ` (${quickQuantity} x ${householdSize} people)` : ""}
+              </p>
+              <button type="submit" className="button button-primary" disabled={quickSaving}>
+                {quickSaving ? "Saving..." : "Add quick entry"}
+              </button>
+              <p className="muted">{quickStatus}</p>
+            </form>
+          </section>
+
+          <section className="ww-card ww-flow-section">
             <h3>Household and water rate settings</h3>
             <label style={{ marginTop: "0.5rem" }}>
               People in household
@@ -392,7 +451,7 @@ export function DashboardClient({
             </p>
           </section>
 
-          <section className="ww-card ww-flow-section">
+          <section ref={alertsSectionRef} className="ww-card ww-flow-section" id="usage-alerts">
             <h3>Usage alerts and suggestions</h3>
             {usageSuggestions.length === 0 ? (
               <p className="muted" style={{ marginTop: "0.6rem" }}>
