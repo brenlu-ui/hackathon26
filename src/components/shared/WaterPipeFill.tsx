@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 type WaterPipeFillProps = {
   liters: number;
+  dailyCostUsd?: number;
+  pricePerLiter?: number;
   benchmarkLiters?: number;
   benchmarkLabel?: string;
   subtitle?: string;
@@ -11,102 +13,377 @@ type WaterPipeFillProps = {
 
 export function WaterPipeFill({
   liters,
+  dailyCostUsd,
+  pricePerLiter = 0.0015,
   benchmarkLiters = 1135,
   benchmarkLabel = "U.S. household daily average",
   subtitle = "Each log fills the pipe by predicted liters (quantity x liters per unit).",
 }: WaterPipeFillProps) {
   const fillPercent = Math.min(100, Math.round((liters / benchmarkLiters) * 100));
-  const previousLitersRef = useRef(liters);
+  const previousLitersRef = useRef(fillPercent);
   const [flowActive, setFlowActive] = useState(false);
 
   useEffect(() => {
-    if (liters !== previousLitersRef.current) {
-      previousLitersRef.current = liters;
+    if (fillPercent !== previousLitersRef.current) {
+      previousLitersRef.current = fillPercent;
       setFlowActive(true);
       const timeout = setTimeout(() => setFlowActive(false), 900);
       return () => clearTimeout(timeout);
     }
     return undefined;
-  }, [liters]);
+  }, [fillPercent]);
+
+  const currentLeft = Math.min(Math.max(fillPercent, 10), 90);
+  const savingsBoundaryRatio = 0.6;
+  const highBoundaryRatio = 0.9;
+  const baselineDailyCost = benchmarkLiters * pricePerLiter;
+  const savingsCostMax = baselineDailyCost * savingsBoundaryRatio;
+  const highCostStart = baselineDailyCost * highBoundaryRatio;
 
   return (
-    <div style={{ width: "100%" }}>
-      <p className="muted" style={{ marginTop: "0.4rem", marginBottom: "1rem" }}>
-        {subtitle}
-      </p>
-      <div
-        style={{
-          height: 24,
-          width: "100%",
-          borderRadius: 999,
-          border: "1px solid var(--border)",
-          background: "var(--background)",
-          overflow: "hidden",
-          position: "relative",
-        }}
-      >
-        <div
-          className={`pipe-fill ${flowActive ? "pipe-fill-boost" : ""}`}
-          style={{
-            width: `${fillPercent}%`,
-            height: "100%",
-            background: "linear-gradient(90deg, #78beff 0%, #3f97f2 40%, #1f7ae0 100%)",
-            transition: "width 500ms ease",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div className="pipe-flow-band" />
+    <div className="pipe-wrap">
+      <p className="muted pipe-subtitle">{subtitle}</p>
+      <div className="pipe-grid">
+        <div className="pipe-scale">
+          <span>Min usage: 0 L/day</span>
+          <span>Max baseline: {benchmarkLiters.toLocaleString()} L/day</span>
         </div>
-        {flowActive ? <div className="pipe-shimmer" /> : null}
+        <div className="pipe-meter">
+          <div className="pipe-zone zone-savings" />
+          <div className="pipe-zone zone-average" />
+          <div className="pipe-zone zone-high" />
+          <div className="pipe-checkpoint" style={{ left: `${savingsBoundaryRatio * 100}%` }} />
+          <div className="pipe-checkpoint" style={{ left: `${highBoundaryRatio * 100}%` }} />
+          <div
+            className={`pipe-fill ${flowActive ? "pipe-fill-boost" : ""}`}
+            style={{ width: `${fillPercent}%` }}
+          >
+            <div className="pipe-wave wave-back" />
+            <div className="pipe-wave wave-mid" />
+            <div className="pipe-wave wave-front" />
+            <div className="pipe-bubbles pipe-bubbles-a" />
+            <div className="pipe-bubbles pipe-bubbles-b" />
+          </div>
+          <div className="pipe-marker marker-benchmark">Max baseline</div>
+          <div
+            className="pipe-marker marker-current"
+            style={{ left: `${currentLeft}%` }}
+          >
+            Current level
+          </div>
+        </div>
+        <div className="pipe-range-legend">
+          <span className="range-pill saving">Savings: up to ${savingsCostMax.toFixed(2)}/day</span>
+          <span className="range-pill average">
+            Average: ${savingsCostMax.toFixed(2)}-${highCostStart.toFixed(2)}/day
+          </span>
+          <span className="range-pill high">High: above ${highCostStart.toFixed(2)}/day</span>
+        </div>
       </div>
-      <p style={{ textAlign: "center", marginTop: "0.8rem", fontWeight: 700 }}>
-        {liters.toFixed(2)} L logged ({fillPercent}% of {benchmarkLabel}: {benchmarkLiters.toLocaleString()} L)
+      <p className="pipe-value">~${(dailyCostUsd ?? 0).toFixed(2)}/day estimated</p>
+      <p className="muted pipe-context">
+        {liters.toFixed(2)} L/day ({fillPercent}% of {benchmarkLabel})
       </p>
       <style jsx>{`
-        .pipe-shimmer {
+        .pipe-wrap {
+          width: 100%;
+        }
+
+        .pipe-subtitle {
+          margin-top: 0.4rem;
+          margin-bottom: 1rem;
+        }
+
+        .pipe-grid {
+          display: grid;
+          gap: 0.5rem;
+          align-items: stretch;
+        }
+
+        .pipe-scale {
+          display: flex;
+          justify-content: space-between;
+          color: var(--muted);
+          font-size: 0.76rem;
+          gap: 1rem;
+        }
+
+        .pipe-meter {
+          position: relative;
+          height: 110px;
+          border-radius: 10px;
+          border: 2px solid #4f6f86;
+          background: linear-gradient(180deg, #173548 0%, #112b3b 100%);
+          overflow: hidden;
+          box-shadow:
+            inset 0 0 0 1px rgba(156, 206, 235, 0.18),
+            inset 0 -12px 18px rgba(8, 24, 35, 0.5),
+            0 10px 24px rgba(7, 27, 40, 0.35),
+            0 0 20px rgba(52, 155, 222, 0.24);
+        }
+
+        .pipe-zone {
           position: absolute;
-          inset: 0;
+          top: 0;
+          bottom: 0;
+          z-index: 1;
           pointer-events: none;
-          background: linear-gradient(
-            115deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.35) 45%,
-            rgba(255, 255, 255, 0) 75%
-          );
-          transform: translateX(-100%);
-          animation: shimmerAcross 0.85s ease-out;
         }
-        .pipe-flow-band {
+
+        .zone-savings {
+          left: 0;
+          width: ${savingsBoundaryRatio * 100}%;
+          background: linear-gradient(180deg, rgba(58, 167, 99, 0.14) 0%, rgba(58, 167, 99, 0.08) 100%);
+        }
+
+        .zone-average {
+          left: ${savingsBoundaryRatio * 100}%;
+          width: ${(highBoundaryRatio - savingsBoundaryRatio) * 100}%;
+          background: linear-gradient(180deg, rgba(224, 161, 0, 0.17) 0%, rgba(224, 161, 0, 0.09) 100%);
+        }
+
+        .zone-high {
+          left: ${highBoundaryRatio * 100}%;
+          width: ${(1 - highBoundaryRatio) * 100}%;
+          background: linear-gradient(180deg, rgba(194, 55, 58, 0.2) 0%, rgba(194, 55, 58, 0.12) 100%);
+        }
+
+        .pipe-checkpoint {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          z-index: 3;
+          transform: translateX(-50%);
+          background: rgba(196, 232, 255, 0.72);
+          box-shadow: 0 0 0 1px rgba(8, 28, 44, 0.45);
+          pointer-events: none;
+        }
+
+        .pipe-fill {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          z-index: 2;
+          background: linear-gradient(180deg, #4ab7eb 0%, #227fb8 60%, #145b8e 100%);
+          box-shadow:
+            inset 0 8px 16px rgba(98, 190, 235, 0.2),
+            inset 0 -12px 16px rgba(9, 58, 93, 0.36),
+            0 0 12px rgba(51, 147, 210, 0.26);
+          transition: width 500ms ease;
+          overflow: hidden;
+        }
+
+        .pipe-fill-boost {
+          filter: saturate(1.08) brightness(1.03);
+        }
+
+        .pipe-wave {
+          position: absolute;
+          left: 0;
+          right: 0;
+          background-repeat: repeat-x;
+          background-size: 136px 100%;
+          background-position: 0 0;
+          animation: waveShift 8s linear infinite, waveBob 3.5s ease-in-out infinite;
+        }
+
+        .wave-back {
+          top: -18px;
+          height: 38px;
+          background-image:
+            radial-gradient(40px 24px at 34px 100%, rgba(133, 210, 244, 0.3) 98%, transparent 100%),
+            radial-gradient(40px 24px at 102px 100%, rgba(133, 210, 244, 0.25) 98%, transparent 100%);
+          animation-duration: 9s, 3.9s;
+        }
+
+        .wave-mid {
+          top: -12px;
+          height: 34px;
+          background-image:
+            radial-gradient(44px 26px at 34px 100%, rgba(118, 204, 243, 0.46) 98%, transparent 100%),
+            radial-gradient(44px 26px at 102px 100%, rgba(118, 204, 243, 0.4) 98%, transparent 100%);
+          animation-duration: 7.6s, 3.3s;
+        }
+
+        .wave-front {
+          top: -8px;
+          height: 30px;
+          background-image:
+            radial-gradient(46px 28px at 34px 100%, rgba(142, 221, 252, 0.54) 98%, transparent 100%),
+            radial-gradient(46px 28px at 102px 100%, rgba(142, 221, 252, 0.46) 98%, transparent 100%);
+          animation-duration: 6.5s, 2.8s;
+        }
+
+        .pipe-bubbles {
           position: absolute;
           inset: 0;
-          background: repeating-linear-gradient(
-            120deg,
-            rgba(255, 255, 255, 0.08) 0px,
-            rgba(255, 255, 255, 0.08) 8px,
-            rgba(255, 255, 255, 0.24) 8px,
-            rgba(255, 255, 255, 0.24) 16px
-          );
-          background-size: 200% 100%;
-          animation: flowBand 2.2s linear infinite;
+          opacity: 0;
         }
-        .pipe-fill-boost .pipe-flow-band {
-          animation-duration: 0.7s;
+
+        .pipe-bubbles-a {
+          background:
+            radial-gradient(circle at 18% 86%, rgba(154, 224, 255, 0.56) 0 3px, transparent 3px),
+            radial-gradient(circle at 45% 92%, rgba(154, 224, 255, 0.42) 0 4px, transparent 4px),
+            radial-gradient(circle at 76% 88%, rgba(154, 224, 255, 0.5) 0 3px, transparent 3px);
+          animation: bubbleRise 6.2s linear infinite, bubbleFade 6.2s linear infinite;
         }
-        @keyframes shimmerAcross {
+
+        .pipe-bubbles-b {
+          background:
+            radial-gradient(circle at 30% 94%, rgba(154, 224, 255, 0.48) 0 5px, transparent 5px),
+            radial-gradient(circle at 64% 90%, rgba(154, 224, 255, 0.45) 0 4px, transparent 4px),
+            radial-gradient(circle at 84% 96%, rgba(154, 224, 255, 0.35) 0 6px, transparent 6px);
+          animation: bubbleRiseAlt 8s linear infinite, bubbleFadeAlt 8s linear infinite;
+        }
+
+        .pipe-marker {
+          position: absolute;
+          top: 6px;
+          padding: 0.2rem 0.45rem;
+          border: 1px solid rgba(158, 215, 245, 0.35);
+          border-radius: 4px;
+          font-size: 0.7rem;
+          line-height: 1.2;
+          color: #d4efff;
+          background: rgba(12, 42, 61, 0.86);
+          z-index: 4;
+          transform: translateX(-50%);
+          white-space: nowrap;
+          max-width: calc(100% - 10px);
+        }
+
+        .marker-benchmark {
+          right: 8px;
+          left: auto;
+          transform: none;
+        }
+
+        .marker-current {
+          top: 70px;
+          color: #bfe8ff;
+          border: 2px solid #58b6ec;
+          font-weight: 700;
+        }
+
+        .pipe-value {
+          text-align: center;
+          margin-top: 0.8rem;
+          font-weight: 800;
+          color: #1d78ac;
+          font-size: 1.05rem;
+        }
+
+        .pipe-context {
+          text-align: center;
+          margin-top: 0.25rem;
+          font-size: 0.84rem;
+        }
+
+        .pipe-range-legend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.35rem;
+          margin-top: 0.45rem;
+        }
+
+        .range-pill {
+          font-size: 0.72rem;
+          font-weight: 700;
+          border-radius: 999px;
+          padding: 0.14rem 0.45rem;
+          border: 1px solid transparent;
+        }
+
+        .range-pill.saving {
+          color: #1f8f4e;
+          background: rgba(58, 167, 99, 0.14);
+          border-color: rgba(58, 167, 99, 0.35);
+        }
+
+        .range-pill.average {
+          color: #a87800;
+          background: rgba(224, 161, 0, 0.15);
+          border-color: rgba(224, 161, 0, 0.35);
+        }
+
+        .range-pill.high {
+          color: #c2373a;
+          background: rgba(194, 55, 58, 0.14);
+          border-color: rgba(194, 55, 58, 0.35);
+        }
+
+        @keyframes waveShift {
+          from {
+            background-position-x: 0;
+          }
+          to {
+            background-position-x: 136px;
+          }
+        }
+
+        @keyframes waveBob {
+          0%,
+          100% {
+            margin-top: 0;
+          }
+          50% {
+            margin-top: -4px;
+          }
+        }
+
+        @keyframes bubbleRise {
+          from {
+            transform: translateY(18%);
+          }
+          to {
+            transform: translateY(-24%);
+          }
+        }
+
+        @keyframes bubbleRiseAlt {
+          from {
+            transform: translate(4%, 22%);
+          }
+          to {
+            transform: translate(-4%, -26%);
+          }
+        }
+
+        @keyframes bubbleFade {
           0% {
-            transform: translateX(-100%);
+            opacity: 0;
+          }
+          24% {
+            opacity: 0.78;
+          }
+          72% {
+            opacity: 0.78;
+          }
+          88% {
+            opacity: 0;
           }
           100% {
-            transform: translateX(100%);
+            opacity: 0;
           }
         }
-        @keyframes flowBand {
+
+        @keyframes bubbleFadeAlt {
           0% {
-            background-position: 0% 0%;
+            opacity: 0;
+          }
+          28% {
+            opacity: 0.68;
+          }
+          68% {
+            opacity: 0.68;
+          }
+          86% {
+            opacity: 0;
           }
           100% {
-            background-position: 160% 0%;
+            opacity: 0;
           }
         }
       `}</style>

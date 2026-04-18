@@ -406,7 +406,6 @@ select {
 
 .usage-meter-wrap {
   display: grid;
-  grid-template-columns: auto 1fr;
   gap: 0.6rem;
   align-items: stretch;
   margin: 0.8rem 0 0.9rem;
@@ -414,32 +413,49 @@ select {
 
 .meter-scale {
   display: flex;
-  flex-direction: column;
   justify-content: space-between;
   color: var(--muted);
   font-size: 0.8rem;
-  min-width: 62px;
 }
 
 .usage-meter {
   position: relative;
-  height: 290px;
-  border-radius: 6px;
-  border: 2px solid var(--meter-border);
-  background: linear-gradient(180deg, var(--meter-bg-start) 0%, var(--meter-bg-end) 100%);
+  height: 92px;
+  border-radius: 16px;
+  border: 2px solid #7ba8c7;
+  background: linear-gradient(180deg, #edf8ff 0%, #d9ecf9 100%);
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), inset 0 -16px 18px rgba(58, 119, 166, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+    inset 0 -12px 18px rgba(73, 137, 181, 0.2),
+    0 8px 22px rgba(37, 98, 141, 0.16);
+}
+
+.usage-meter::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 10px;
+  width: 24%;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 100%);
+  pointer-events: none;
+  z-index: 3;
 }
 
 .usage-fill {
   position: absolute;
   left: 0;
-  right: 0;
+  top: 0;
   bottom: 0;
-  height: 0%;
-  background: linear-gradient(180deg, #8de1ff 0%, #4db9ef 65%, #2f8fcb 100%);
-  box-shadow: inset 0 8px 16px rgba(255, 255, 255, 0.25);
-  transition: height 0.5s ease;
+  width: 0%;
+  background: linear-gradient(180deg, #67d0ff 0%, #339fde 45%, #227fc0 100%);
+  box-shadow:
+    inset 0 10px 18px rgba(255, 255, 255, 0.3),
+    inset 0 -10px 16px rgba(16, 92, 142, 0.25),
+    0 0 16px rgba(61, 171, 232, 0.22);
+  transition: width 0.5s ease;
   overflow: hidden;
   --wave-height: 20px;
   --wave-speed-multiplier: 1;
@@ -451,99 +467,82 @@ select {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 18% 86%, rgba(255, 255, 255, 0.56) 0 3px, transparent 3px),
-    radial-gradient(circle at 45% 92%, rgba(255, 255, 255, 0.42) 0 4px, transparent 4px),
-    radial-gradient(circle at 76% 88%, rgba(255, 255, 255, 0.5) 0 3px, transparent 3px);
-  opacity: 0.9;
-  animation: bubbleRise calc(6.2s / var(--wave-speed-multiplier)) linear infinite;
+    radial-gradient(circle at 16% 30%, rgba(255, 255, 255, 0.34) 0 2px, transparent 2px),
+    radial-gradient(circle at 48% 68%, rgba(255, 255, 255, 0.26) 0 3px, transparent 3px),
+    radial-gradient(circle at 76% 42%, rgba(255, 255, 255, 0.3) 0 2px, transparent 2px);
+  opacity: 0.68;
+  animation: microBubbles calc(5.2s / var(--wave-speed-multiplier)) linear infinite;
 }
 
 .usage-fill::before {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 30% 94%, rgba(255, 255, 255, 0.48) 0 5px, transparent 5px),
-    radial-gradient(circle at 64% 90%, rgba(255, 255, 255, 0.45) 0 4px, transparent 4px),
-    radial-gradient(circle at 84% 96%, rgba(255, 255, 255, 0.35) 0 6px, transparent 6px);
-  opacity: 0.72;
-  animation: bubbleRiseAlt calc(8s / var(--wave-speed-multiplier)) linear infinite;
+  background: linear-gradient(105deg, rgba(255, 255, 255, 0.05) 8%, rgba(255, 255, 255, 0.26) 50%, rgba(255, 255, 255, 0.05) 92%);
+  transform: translateX(-65%);
+  animation: shineSweep calc(3.4s / var(--wave-speed-multiplier)) linear infinite;
+  opacity: 0.8;
 }
 
 .wave {
   position: absolute;
-  left: 0;
-  right: 0;
-  animation: waveShift calc(8s / var(--wave-speed-multiplier)) linear infinite, waveBob calc(3.5s / var(--wave-speed-multiplier)) ease-in-out infinite;
-  will-change: transform;
-  background-repeat: repeat-x;
-  background-size: 136px 100%;
-  background-position: 0 0;
+  left: -45%;
+  width: 190%;
+  border-radius: 999px 999px 0 0;
+  animation: waveShift calc(7.2s / var(--wave-speed-multiplier)) linear infinite, waveBob calc(3.3s / var(--wave-speed-multiplier)) ease-in-out infinite;
+  will-change: transform, margin-top;
 }
 
 .wave-back {
-  top: calc(0px - var(--wave-height) - 8px);
-  height: calc(var(--wave-height) + 18px);
-  background-image:
-    radial-gradient(40px 24px at 34px 100%, rgba(255, 255, 255, 0.34) 98%, transparent 100%),
-    radial-gradient(40px 24px at 102px 100%, rgba(255, 255, 255, 0.3) 98%, transparent 100%);
-  animation-duration: calc(9s / var(--wave-speed-multiplier)), calc(3.9s / var(--wave-speed-multiplier));
+  top: 16%;
+  height: 20%;
+  background: linear-gradient(90deg, rgba(209, 242, 255, 0.32) 0%, rgba(255, 255, 255, 0.44) 48%, rgba(197, 240, 255, 0.3) 100%);
+  animation-duration: calc(8.6s / var(--wave-speed-multiplier)), calc(3.8s / var(--wave-speed-multiplier));
 }
 
 .wave-mid {
-  top: calc(0px - var(--wave-height) - 3px);
-  height: calc(var(--wave-height) + 16px);
-  background-image:
-    radial-gradient(44px 26px at 34px 100%, rgba(214, 245, 255, 0.6) 98%, transparent 100%),
-    radial-gradient(44px 26px at 102px 100%, rgba(214, 245, 255, 0.52) 98%, transparent 100%);
-  animation-duration: calc(7.6s / var(--wave-speed-multiplier)), calc(3.3s / var(--wave-speed-multiplier));
+  top: 42%;
+  height: 22%;
+  background: linear-gradient(90deg, rgba(195, 236, 255, 0.36) 0%, rgba(255, 255, 255, 0.52) 52%, rgba(180, 230, 255, 0.3) 100%);
+  animation-duration: calc(7.2s / var(--wave-speed-multiplier)), calc(3.1s / var(--wave-speed-multiplier));
 }
 
 .wave-front {
-  top: calc(0px - var(--wave-height) + 1px);
-  height: calc(var(--wave-height) + 14px);
-  background-image:
-    radial-gradient(46px 28px at 34px 100%, rgba(255, 255, 255, 0.72) 98%, transparent 100%),
-    radial-gradient(46px 28px at 102px 100%, rgba(255, 255, 255, 0.64) 98%, transparent 100%);
-  animation-duration: calc(6.5s / var(--wave-speed-multiplier)), calc(2.8s / var(--wave-speed-multiplier));
+  top: 70%;
+  height: 20%;
+  background: linear-gradient(90deg, rgba(218, 247, 255, 0.38) 0%, rgba(255, 255, 255, 0.56) 46%, rgba(180, 232, 255, 0.3) 100%);
+  animation-duration: calc(6.6s / var(--wave-speed-multiplier)), calc(2.9s / var(--wave-speed-multiplier));
 }
 
 body.dark-mode .usage-meter {
   box-shadow:
-    inset 0 0 0 1px rgba(154, 215, 255, 0.22),
-    inset 0 -18px 24px rgba(23, 90, 136, 0.42),
-    0 0 24px rgba(47, 143, 203, 0.18);
+    inset 0 0 0 1px rgba(154, 215, 255, 0.26),
+    inset 0 -18px 24px rgba(23, 90, 136, 0.5),
+    0 0 24px rgba(47, 143, 203, 0.25);
 }
 
 body.dark-mode .usage-fill {
   box-shadow:
-    inset 0 10px 16px rgba(255, 255, 255, 0.2),
-    0 0 20px rgba(83, 194, 255, 0.28),
-    0 0 38px rgba(47, 143, 203, 0.18);
+    inset 0 10px 16px rgba(255, 255, 255, 0.22),
+    0 0 22px rgba(83, 194, 255, 0.34),
+    0 0 40px rgba(47, 143, 203, 0.24);
 }
 
 body.dark-mode .wave-back {
-  background-image:
-    radial-gradient(40px 24px at 34px 100%, rgba(180, 233, 255, 0.42) 98%, transparent 100%),
-    radial-gradient(40px 24px at 102px 100%, rgba(180, 233, 255, 0.35) 98%, transparent 100%);
+  background: linear-gradient(90deg, rgba(179, 233, 255, 0.36) 0%, rgba(214, 247, 255, 0.56) 48%, rgba(152, 220, 252, 0.3) 100%);
 }
 
 body.dark-mode .wave-mid {
-  background-image:
-    radial-gradient(44px 26px at 34px 100%, rgba(200, 242, 255, 0.68) 98%, transparent 100%),
-    radial-gradient(44px 26px at 102px 100%, rgba(200, 242, 255, 0.58) 98%, transparent 100%);
+  background: linear-gradient(90deg, rgba(194, 241, 255, 0.42) 0%, rgba(232, 251, 255, 0.62) 52%, rgba(162, 229, 255, 0.34) 100%);
 }
 
 body.dark-mode .wave-front {
-  background-image:
-    radial-gradient(46px 28px at 34px 100%, rgba(235, 250, 255, 0.78) 98%, transparent 100%),
-    radial-gradient(46px 28px at 102px 100%, rgba(235, 250, 255, 0.7) 98%, transparent 100%);
+  background: linear-gradient(90deg, rgba(201, 244, 255, 0.46) 0%, rgba(239, 252, 255, 0.7) 46%, rgba(171, 233, 255, 0.4) 100%);
 }
 
 .meter-marker {
   position: absolute;
-  left: 6px;
-  right: 6px;
+  top: 6px;
   padding: 0.2rem 0.45rem;
   border: 1px solid rgba(21, 69, 108, 0.24);
   border-radius: 4px;
@@ -552,17 +551,19 @@ body.dark-mode .wave-front {
   background: var(--marker-bg);
   z-index: 4;
   white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .marker-best {
-  bottom: 24%;
+  left: 35%;
 }
 
 .marker-good {
-  bottom: 39%;
+  left: 65%;
 }
 
 .marker-current {
+  top: 48px;
   color: var(--accent);
   border: 2px solid var(--accent);
   font-weight: bold;
@@ -629,10 +630,10 @@ body.dark-mode .wave-front {
 
 @keyframes waveShift {
   from {
-    background-position-x: 0;
+    transform: translateX(0);
   }
   to {
-    background-position-x: 136px;
+    transform: translateX(18%);
   }
 }
 
@@ -641,27 +642,28 @@ body.dark-mode .wave-front {
     margin-top: 0;
   }
   50% {
-    margin-top: calc(var(--wave-bob) * -1);
+    margin-top: calc(var(--wave-bob) * -0.75);
   }
 }
 
-@keyframes bubbleRise {
+@keyframes microBubbles {
   from {
-    transform: translateY(18%);
+    transform: translate(0, 12%);
   }
   to {
-    transform: translateY(-24%);
+    transform: translate(0, -14%);
   }
 }
 
-@keyframes bubbleRiseAlt {
+@keyframes shineSweep {
   from {
-    transform: translate(4%, 22%);
+    transform: translateX(-65%);
   }
   to {
-    transform: translate(-4%, -26%);
+    transform: translateX(95%);
   }
 }
+
 
 footer {
   text-align: center;

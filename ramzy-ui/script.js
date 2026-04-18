@@ -454,7 +454,7 @@ function renderRecommendations(recommendations) {
 function renderImpactPanel(total, perPerson, recommendations) {
   const meterMax = Math.max(220, Math.ceil(total / 10) * 10);
   const fillPercent = Math.min((total / meterMax) * 100, 100);
-  const currentTagBottom = Math.min(Math.max(fillPercent, 7), 94);
+  const currentTagLeft = Math.min(Math.max(fillPercent, 6), 96);
   const possibleDailySavings = recommendations.reduce((sum, rec) => sum + rec.savings, 0);
   const monthlyGallonsSaved = possibleDailySavings * 30;
   const monthlyCostSaved = monthlyGallonsSaved * billing.costPerGallon;
@@ -465,11 +465,11 @@ function renderImpactPanel(total, perPerson, recommendations) {
   const waveBob = 2 + sloshRatio * 5.2;
 
   const usageFill = document.getElementById("usage-fill");
-  usageFill.style.height = `${fillPercent.toFixed(1)}%`;
+  usageFill.style.width = `${fillPercent.toFixed(1)}%`;
   usageFill.style.setProperty("--wave-height", `${waveHeight.toFixed(1)}px`);
   usageFill.style.setProperty("--wave-speed-multiplier", waveSpeed.toFixed(2));
   usageFill.style.setProperty("--wave-bob", `${waveBob.toFixed(2)}px`);
-  document.getElementById("current-usage-tag").style.bottom = `${currentTagBottom.toFixed(1)}%`;
+  document.getElementById("current-usage-tag").style.left = `${currentTagLeft.toFixed(1)}%`;
   document.getElementById("current-usage-tag").textContent = `Now: $${(total * billing.costPerGallon).toFixed(2)}/day`;
   document.getElementById("meter-max-label").textContent = `${meterMax.toFixed(0)} gal/day`;
   document.getElementById("meter-mid-label").textContent = `${(meterMax / 2).toFixed(0)} gal/day`;

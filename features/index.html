@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water Sustainability — Mini House Game</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!--
+      Household Water Usage Simulator
+      - Player sets a custom water budget for the session
+      - Player logs household activities (minutes or counts)
+      - The game subtracts water used from the budget and estimates cost
+      - The right-side bar visualizes remaining water as a % of the entered budget
+    -->
+    <div class="app">
+      <!-- Top app bar -->
+      <header class="topbar" aria-label="App header">
+        <div class="topbar__left">
+          <div class="brand">
+            <div class="brand__title" data-i18n="appTitle">Water Sustainability Dashboard</div>
+            <div class="brand__subtitle" data-i18n="appSubtitle">Manage water use, cost, and habits.</div>
+          </div>
+        </div>
+
+        <div class="topbar__center">
+          <div class="pillTabs" role="tablist" aria-label="Simulator mode">
+            <button id="tabCasual" class="pillTab" type="button" role="tab" aria-selected="true">
+              Casual
+            </button>
+            <button id="tabAdvanced" class="pillTab" type="button" role="tab" aria-selected="false">
+              Advanced
+            </button>
+          </div>
+
+          <div class="pillTabs" role="tablist" aria-label="Time mode">
+            <button id="tabDay" class="pillTab" type="button" role="tab" aria-selected="true" data-i18n="day">Day</button>
+            <button id="tabWeek" class="pillTab" type="button" role="tab" aria-selected="false" data-i18n="week">Week</button>
+            <button id="tabMonth" class="pillTab" type="button" role="tab" aria-selected="false" data-i18n="month">Month</button>
+          </div>
+
+          <div id="settingsStatus" class="topbar__status" aria-live="polite"></div>
+        </div>
+
+        <div class="topbar__right">
+          <button id="settingsBtn" class="iconBtn" type="button" aria-label="Open settings" data-i18n-aria="openSettings">⚙</button>
+        </div>
+      </header>
+
+      <!-- Settings drawer -->
+      <aside id="settingsPanel" class="settings settings--hidden" aria-label="Settings">
+        <div class="settings__header">
+          <div class="settings__title" data-i18n="settings">Settings</div>
+          <button id="settingsCloseBtn" class="iconBtn" type="button" aria-label="Close settings" data-i18n-aria="closeSettings">✕</button>
+        </div>
+        <div class="settings__section">
+          <div class="settings__label" data-i18n="theme">Theme</div>
+          <div class="segmented" role="radiogroup" aria-label="Theme">
+            <button id="themeLightBtn" class="segmented__btn" type="button" aria-pressed="true" data-i18n="lightMode">Light</button>
+            <button id="themeDarkBtn" class="segmented__btn" type="button" aria-pressed="false" data-i18n="darkMode">Dark</button>
+          </div>
+          <div class="settings__hint" data-i18n="themeHint">Your choice is saved on reload.</div>
+        </div>
+
+        <div class="settings__section" style="margin-top: 12px;">
+          <div class="settings__label" data-i18n="language">Language</div>
+          <div class="segmented" role="radiogroup" aria-label="Language">
+            <button id="langEnBtn" class="segmented__btn" type="button" aria-pressed="true">English</button>
+            <button id="langEsBtn" class="segmented__btn" type="button" aria-pressed="false">Español</button>
+            <button id="langFrBtn" class="segmented__btn" type="button" aria-pressed="false">Français</button>
+          </div>
+          <div class="settings__hint" data-i18n="languageHint">Language updates instantly and is saved.</div>
+        </div>
+      </aside>
+      <div id="scrim" class="scrim scrim--hidden" aria-hidden="true"></div>
+
+      <div class="layout">
+        <main class="sim" aria-label="Household water usage simulator">
+          <section class="card card--compact" aria-label="Date selection">
+            <div class="card__titleRow">
+            <div class="card__title" data-i18n="date">Date</div>
+              <div class="dateNav" aria-label="Navigate dates">
+                <button id="prevBtn" class="btn btn--secondary btn--small" type="button" data-i18n="prev">Prev</button>
+                <button id="todayBtn" class="btn btn--secondary btn--small" type="button" data-i18n="today">Today</button>
+                <button id="nextBtn" class="btn btn--secondary btn--small" type="button" data-i18n="next">Next</button>
+              </div>
+            </div>
+
+            <div class="dateGrid">
+              <div class="dateGrid__left">
+              <div class="kpiLabel" data-i18n="selected">Selected</div>
+                <div id="selectedDateLabel" class="kpiValue">—</div>
+                <div id="rangeLabel" class="kpiHint">—</div>
+              </div>
+              <div class="dateGrid__right">
+                <div id="dayPicker" class="datePicker">
+                  <label class="srOnly" for="dayInput">Choose date</label>
+                  <input id="dayInput" class="input" type="date" />
+                </div>
+                <div id="weekPicker" class="weekStrip" aria-label="Week days"></div>
+                <div id="monthPicker" class="monthCal" aria-label="Month calendar"></div>
+              </div>
+            </div>
+          </section>
+
+        <section class="card" aria-label="Budget setup">
+          <div class="card__title" data-i18n="budget">Budget</div>
+          <div class="formRow">
+            <label class="label" for="budgetInput" data-i18n="budgetLiters">Budget (liters)</label>
+            <input
+              id="budgetInput"
+              class="input"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="e.g. 100"
+            />
+            <button id="setBudgetBtn" class="btn btn--primary" type="button" data-i18n="startSession">
+              Start Session
+            </button>
+            <button id="resetBtn" class="btn btn--secondary" type="button" data-i18n="reset">Reset</button>
+          </div>
+          <div id="budgetHint" class="hint" aria-live="polite" data-i18n="budgetHint">
+            Tip: Smaller budgets make the bar drop faster for the same activity.
+          </div>
+        </section>
+
+        <section class="card" aria-label="Daily water sources">
+          <div class="card__title" data-i18n="waterSources">Water sources</div>
+          <div class="card__subtitle">
+            <span data-i18n="oneRecordRule">Each date stores one saved record. Saving again with identical values won’t double-count.</span>
+          </div>
+
+          <div class="sources">
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcShower">Shower (minutes)</div>
+              <input id="srcShower" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateShower">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersShower">0</span> L • <span id="costShower">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcKitchenSink">Kitchen sink (minutes)</div>
+              <input id="srcKitchenSink" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateKitchenSink">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersKitchenSink">0</span> L • <span id="costKitchenSink">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcBathroomSink">Bathroom sink (minutes)</div>
+              <input id="srcBathroomSink" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateBathroomSink">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersBathroomSink">0</span> L • <span id="costBathroomSink">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcToilet">Toilet flushes (count)</div>
+              <input id="srcToilet" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateToilet">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersToilet">0</span> L • <span id="costToilet">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcWasher">Washer (cycles)</div>
+              <input id="srcWasher" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateWasher">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersWasher">0</span> L • <span id="costWasher">$0.00</span>
+                </div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label" data-i18n="srcDishwasher">Dishwasher (cycles)</div>
+              <input id="srcDishwasher" class="input" type="number" min="0" step="1" placeholder="0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate"><span data-i18n="outputRate">Output rate</span>: <b id="rateDishwasher">—</b></div>
+                <div class="sourceRow__calc">
+                  <span id="litersDishwasher">0</span> L • <span id="costDishwasher">$0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actionRow">
+            <button id="saveBtn" class="btn btn--primary" type="button" data-i18n="save">Save</button>
+            <button id="clearInputsBtn" class="btn btn--secondary" type="button">
+              <span data-i18n="clear">Clear</span>
+            </button>
+          </div>
+
+          <div class="hint" data-i18n="outputRateInfo">
+            <b>What does “output rate” mean?</b> It’s how much water a fixture releases.
+            Showers/sinks use <b>liters per minute</b>, toilets use <b>liters per flush</b>, and
+            washer/dishwasher use <b>liters per cycle</b>.
+          </div>
+
+          <div id="saveStatus" class="status status--info" aria-live="polite"></div>
+        </section>
+
+        <!-- Casual-mode advice (educational tips) -->
+        <section id="adviceCard" class="card" aria-label="Advice">
+          <div class="card__title" data-i18n="advice">Advice</div>
+          <div id="adviceSummary" class="card__subtitle"></div>
+          <ul id="adviceList" class="adviceList" aria-label="Advice messages"></ul>
+          <div class="hint" data-i18n="adviceHint">
+            Tips are based on recommended daily ranges and scale automatically for Week/Month views.
+          </div>
+        </section>
+
+          <section class="card" aria-label="History">
+            <div class="card__titleRow">
+              <div class="card__title" data-i18n="history">History</div>
+              <div class="card__subtitle" data-i18n="historySubtitle">Saved records & updates.</div>
+            </div>
+            <div id="history" class="history" aria-label="Usage history"></div>
+          </section>
+        </main>
+
+      <!-- Advanced settings view (separate page-like panel) -->
+      <main id="advancedView" class="sim sim--hidden" aria-label="Advanced fixture settings">
+        <header class="simHeader">
+          <div class="simHeader__title" data-i18n="advancedSettingsTitle">Advanced Fixture Settings</div>
+          <div class="simHeader__subtitle">
+            <span data-i18n="advancedSettingsSubtitle">
+              Customize output rates and water price. These values are used in calculations until you reset them.
+            </span>
+          </div>
+          <div class="actionRow">
+            <button id="backToSimBtn" class="btn btn--secondary" type="button" data-i18n="back">Back</button>
+          </div>
+        </header>
+
+        <section class="card" aria-label="Advanced settings form">
+          <div class="card__title" data-i18n="customOutputRates">Custom output rates</div>
+          <div class="card__subtitle" data-i18n="advancedFormHint">
+            All values use liters (L). Enter numbers, then click Save.
+          </div>
+
+          <div class="sources">
+            <div class="sourceRow">
+              <div class="sourceRow__label">Shower</div>
+              <input id="advShower" class="input" type="number" min="0" step="0.01" placeholder="7.57" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/min</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Bathroom sink</div>
+              <input id="advBathroomSink" class="input" type="number" min="0" step="0.01" placeholder="5.68" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/min</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Kitchen sink</div>
+              <input id="advKitchenSink" class="input" type="number" min="0" step="0.01" placeholder="8.33" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/min</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Toilet</div>
+              <input id="advToilet" class="input" type="number" min="0" step="0.01" placeholder="4.85" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/flush</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Washer</div>
+              <input id="advWasher" class="input" type="number" min="0" step="0.01" placeholder="53.0" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/cycle</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Dishwasher</div>
+              <input id="advDishwasher" class="input" type="number" min="0" step="0.01" placeholder="12.11" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>L/cycle</b></div>
+              </div>
+            </div>
+            <div class="sourceRow">
+              <div class="sourceRow__label">Water price</div>
+              <input id="advPrice" class="input" type="number" min="0" step="0.001" placeholder="0.003" />
+              <div class="sourceRow__meta">
+                <div class="sourceRow__rate">Units: <b>$/liter</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="actionRow">
+            <button id="saveAdvancedBtn" class="btn btn--primary" type="button" data-i18n="saveAdvanced">
+              Save Advanced Settings
+            </button>
+            <button id="resetAdvancedBtn" class="btn btn--secondary" type="button" data-i18n="resetToDefaults">
+              Reset to Defaults
+            </button>
+          </div>
+
+          <div id="advancedStatus" class="status status--info" aria-live="polite"></div>
+        </section>
+      </main>
+
+        <aside class="side" aria-label="Usage visualization and summary">
+          <section class="card card--tight" aria-label="Summary stats">
+            <div class="statsGrid">
+              <div class="stat">
+                <div class="stat__label" data-i18n="budget">Budget</div>
+                <div id="summaryBudget" class="stat__value">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label" data-i18n="used">Used</div>
+                <div id="summaryUsed" class="stat__value">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label" data-i18n="remaining">Remaining</div>
+                <div id="summaryRemaining" class="stat__value">—</div>
+              </div>
+              <div class="stat">
+                <div class="stat__label" data-i18n="spent">Spent</div>
+                <div id="summaryCost" class="stat__value">—</div>
+              </div>
+              <div class="stat stat--wide">
+                <div class="stat__label" data-i18n="budgetLeft">Budget left</div>
+                <div id="summaryPct" class="stat__value">—</div>
+              </div>
+            </div>
+            <div id="lowWarning" class="status status--warn" aria-live="polite"></div>
+          </section>
+
+          <section class="card card--tight" aria-label="Water bar">
+            <div class="card__titleRow">
+              <div class="card__title" data-i18n="waterBudget">Water budget</div>
+              <div class="kpiHint"><span id="waterValue">—</span> <span id="waterUnit">/ —</span></div>
+            </div>
+            <div class="waterbar" role="img" aria-label="Water supply bar">
+              <canvas id="waterCanvas" class="waterbar__canvas"></canvas>
+            </div>
+            <div class="sideActions">
+              <button id="clearInputsBtnHud" class="btn btn--secondary" type="button" data-i18n="clearInputs">
+                Clear inputs
+              </button>
+            </div>
+            <div id="statusText" class="status status--info" aria-live="polite"></div>
+          </section>
+        </aside>
+      </div>
+    </div>
+
+    <script src="./script.js" defer></script>
+  </body>
+</html>

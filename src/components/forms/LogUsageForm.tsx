@@ -25,27 +25,39 @@ export function LogUsageForm({
   const [appliance, setAppliance] = useState<ApplianceId>("washing_machine");
   const [quantity, setQuantity] = useState(1);
   const [litersPerUnit, setLitersPerUnit] = useState(65);
-  const [occurredAt, setOccurredAt] = useState(new Date().toISOString().slice(0, 16));
+  const [occurredAt, setOccurredAt] = useState("");
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("");
-  const [logs, setLogs] = useState(recentLogs);
+  const [localLogs, setLocalLogs] = useState(recentLogs);
   const [isSaving, setIsSaving] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editQuantity, setEditQuantity] = useState(1);
   const [editLitersPerUnit, setEditLitersPerUnit] = useState(1);
   const [editNotes, setEditNotes] = useState("");
+  const displayedLogs = onLogsChange ? recentLogs : localLogs;
 
   function updateLogs(next: LogEntry[] | ((current: LogEntry[]) => LogEntry[])) {
-    setLogs((current) => {
-      const resolved = typeof next === "function" ? next(current) : next;
+    if (onLogsChange) {
+      const resolved = typeof next === "function" ? next(recentLogs) : next;
       onLogsChange?.(resolved);
-      return resolved;
-    });
+      return;
+    }
+    setLocalLogs((current) => (typeof next === "function" ? next(current) : next));
   }
 
   const quantityLabel = useMemo(
     () => (durationLabels.includes(appliance) ? "Minutes" : "Cycles/Events"),
     [appliance],
+  );
+
+  const stableDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "UTC",
+      }),
+    [],
   );
   function onApplianceChange(next: ApplianceId) {
     setAppliance(next);
@@ -72,7 +84,7 @@ export function LogUsageForm({
         appliance,
         quantity: Number(quantity),
         litersPerUnit: Number(litersPerUnit),
-        occurredAt: new Date(occurredAt).toISOString(),
+        occurredAt: occurredAt ? new Date(occurredAt).toISOString() : new Date().toISOString(),
         notes: notes || undefined,
       }),
     });
@@ -139,14 +151,14 @@ export function LogUsageForm({
 
   return (
     <div className="grid two-column">
-      <section className="panel">
-        <h2>Log water usage ✍️💧</h2>
+      <section className="ww-card ww-flow-section">
+        <h2>Log water usage</h2>
         <p className="muted" style={{ marginBottom: "1rem" }}>
-          Enter manual usage by appliance 🧺🍽️🚿.
+          Enter manual usage by appliance.
         </p>
         <form onSubmit={submitLog} className="grid">
           <label>
-            Appliance 🏠
+            Appliance
             <select value={appliance} onChange={(event) => onApplianceChange(event.target.value as ApplianceId)}>
               {APPLIANCES.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -167,7 +179,7 @@ export function LogUsageForm({
             />
           </label>
           <label>
-            Liters per unit 💧
+            Liters per unit
             <input
               type="number"
               min={0.1}
@@ -179,20 +191,19 @@ export function LogUsageForm({
           </label>
           <p className="muted">Estimated: {(quantity * litersPerUnit).toFixed(2)} L</p>
           <label>
-            Timestamp ⏰
+            Timestamp
             <input
               type="datetime-local"
               value={occurredAt}
               onChange={(event) => setOccurredAt(event.target.value)}
-              required
             />
           </label>
           <label>
-            Notes 📝
+            Notes
             <textarea rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} />
           </label>
           <button className="button button-primary" type="submit" disabled={isSaving}>
-            {isSaving ? "Saving... ⏳" : "Save Log ✅"}
+            {isSaving ? "Saving..." : "Save log"}
           </button>
         </form>
         <p className="muted" style={{ marginTop: "0.75rem" }}>
@@ -200,18 +211,18 @@ export function LogUsageForm({
         </p>
       </section>
 
-      <section className="panel">
-        <h3>Recent logs 📚</h3>
+      <section className="ww-card">
+        <h3>Recent logs</h3>
         <div className="grid" style={{ marginTop: "1rem" }}>
-          {logs.length === 0 ? (
-            <p className="muted">No logs yet 📭.</p>
+          {displayedLogs.length === 0 ? (
+            <p className="muted">No logs yet.</p>
           ) : (
-            logs.map((log) => (
-              <article key={log.id} className="panel" style={{ padding: "0.75rem" }}>
+            displayedLogs.map((log) => (
+              <article key={log.id} className="ww-card" style={{ padding: "0.75rem" }}>
                 <p>
                   <strong>{log.appliance.replaceAll("_", " ")}</strong> - {Number(log.estimatedLiters).toFixed(2)} L
                 </p>
-                <p className="muted">{new Date(log.occurredAt).toLocaleString()}</p>
+                <p className="muted">{stableDateFormatter.format(new Date(log.occurredAt))} UTC</p>
                 {editingLogId === log.id ? (
                   <div className="grid" style={{ marginTop: "0.5rem" }}>
                     <label>
@@ -254,7 +265,7 @@ export function LogUsageForm({
                     onClick={() => beginEdit(log)}
                     style={{ marginTop: "0.5rem", marginRight: "0.5rem" }}
                   >
-                    Edit ✏️
+                    Edit
                   </button>
                 )}
                 <button
@@ -263,7 +274,7 @@ export function LogUsageForm({
                   onClick={() => removeLog(log.id)}
                   style={{ marginTop: "0.5rem" }}
                 >
-                  Delete 🗑️
+                  Delete
                 </button>
               </article>
             ))
