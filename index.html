@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WaterWise Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <h1>WaterWise Tracker</h1>
+    <p>
+      Track your daily water use and get realistic, sustainability-focused
+      actions to reduce consumption.
+    </p>
+  </header>
+
+  <main class="container with-side-panel">
+    <aside class="card impact-panel">
+      <h2>Impact Tracker</h2>
+      <p class="section-note">See your usage level and unlock savings milestones.</p>
+
+      <div class="usage-meter-wrap">
+        <div class="pipe-scale">
+          <span id="meter-min-label">0 gal/day</span>
+          <span id="meter-mid-label">110 gal/day</span>
+          <span id="meter-max-label">220 gal/day</span>
+        </div>
+        <div class="usage-meter">
+          <div class="pipe-end pipe-end-left"></div>
+          <div class="pipe-end pipe-end-right"></div>
+          <div id="usage-fill" class="usage-fill">
+            <div class="wave wave-back"></div>
+            <div class="wave wave-front"></div>
+          </div>
+          <div class="meter-marker marker-best">Best practice</div>
+          <div class="meter-marker marker-good">Good target</div>
+          <div id="current-usage-tag" class="meter-marker marker-current">Current</div>
+        </div>
+      </div>
+
+      <div id="impact-metrics" class="impact-metrics"></div>
+      <div id="milestones" class="milestones"></div>
+    </aside>
+
+    <div class="main-content">
+      <section class="card">
+        <h2>Daily Usage Inputs</h2>
+        <p class="section-note">
+          Enter your household behavior for a typical day.
+        </p>
+        <form id="usage-form" class="grid">
+          <label>
+            Household size
+            <input id="people" type="number" min="1" value="2" required />
+          </label>
+          <label>
+            Avg shower length (minutes/person)
+            <input id="shower-minutes" type="number" min="0" step="0.5" value="8" required />
+          </label>
+          <label>
+            Toilet flushes (per household/day)
+            <input id="flushes" type="number" min="0" value="18" required />
+          </label>
+          <label>
+            Laundry loads (per week)
+            <input id="laundry-loads" type="number" min="0" step="1" value="5" required />
+          </label>
+          <label>
+            Dishwasher loads (per week)
+            <input id="dishwasher-loads" type="number" min="0" step="1" value="4" required />
+          </label>
+          <label>
+            Outdoor watering (minutes/day)
+            <input id="outdoor-minutes" type="number" min="0" step="1" value="10" required />
+          </label>
+          <label>
+            Faucet left running (minutes/day)
+            <input id="faucet-minutes" type="number" min="0" step="1" value="6" required />
+          </label>
+        </form>
+        <button id="analyze-btn" class="primary">Analyze Water Use</button>
+      </section>
+
+      <section class="card">
+        <h2>Usage Summary</h2>
+        <div id="summary" class="summary">
+          <p>Press <strong>Analyze Water Use</strong> to view your estimate.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Recommended Actions</h2>
+        <p class="section-note">
+          Ranked by estimated water savings and practical feasibility.
+        </p>
+        <div id="recommendations" class="recommendations">
+          <p>Your personalized recommendations will appear here.</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <p>
+      Estimates are based on commonly cited household averages and should be used for planning, not utility billing.
+    </p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
