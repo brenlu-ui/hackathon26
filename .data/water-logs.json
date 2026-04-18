@@ -1,0 +1,42 @@
+[
+  {
+    "id": "abc19269-bd86-4d27-af86-09cd9d9b27f9",
+    "appliance": "shower",
+    "quantity": 10,
+    "litersPerUnit": 9,
+    "estimatedLiters": 90,
+    "occurredAt": "2026-04-18T19:11:00.000Z"
+  },
+  {
+    "id": "ef93c17d-70b3-4ba5-b822-61119d32f029",
+    "appliance": "dishwasher",
+    "quantity": 10,
+    "litersPerUnit": 22,
+    "estimatedLiters": 220,
+    "occurredAt": "2026-04-18T19:00:00.000Z"
+  },
+  {
+    "id": "12aa9bc1-084f-4bb0-a802-9cec83a8c218",
+    "appliance": "dishwasher",
+    "quantity": 10,
+    "litersPerUnit": 22,
+    "estimatedLiters": 220,
+    "occurredAt": "2026-04-18T19:00:00.000Z"
+  },
+  {
+    "id": "5e7b5f7a-a173-4024-9eb7-476eee71acfe",
+    "appliance": "dishwasher",
+    "quantity": 10,
+    "litersPerUnit": 22,
+    "estimatedLiters": 220,
+    "occurredAt": "2026-04-18T19:00:00.000Z"
+  },
+  {
+    "id": "7f45b69e-1b9a-4a93-8991-cd57ce78f1de",
+    "appliance": "dishwasher",
+    "quantity": 10,
+    "litersPerUnit": 22,
+    "estimatedLiters": 220,
+    "occurredAt": "2026-04-18T19:00:00.000Z"
+  }
+]
